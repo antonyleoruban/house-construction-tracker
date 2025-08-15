@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1029376016626",
+    "project_id": "house-construction-tracker",
+    "storage_bucket": "house-construction-tracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1029376016626:android:ebc3edce594a6f6033d06b",
+        "android_client_info": {
+          "package_name": "com.construction.newhome"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN6eeDTU6rR28TLxGhO5Iz3mNO0hvwfZ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
