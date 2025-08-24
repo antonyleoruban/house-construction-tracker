@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import 'constrcution/image_screen.dart';
 import 'expense/expense_screen.dart';
 import 'loan/loan_screen.dart';
+import 'notes/notes_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -77,6 +78,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               }),
               _buildMenuButton('Construction Images', Icons.image, () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ImageListScreen()));
+              }),
+              _buildMenuButton('Notes', Icons.note, () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen()));
               }),
             ],
           ),
