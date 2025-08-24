@@ -37,11 +37,7 @@ The app leverages **Firebase** for backend services:
 ## 💻 Platforms
 The app is configured to run on:
 - Android
-- iOS
 - Web
-- Windows
-- macOS
-- Linux
 
 ---
 
