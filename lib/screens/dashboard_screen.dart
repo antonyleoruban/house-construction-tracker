@@ -1,11 +1,14 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/app_provider.dart';
+import '../widgets/alert_dialog.dart';
 import 'constrcution/image_screen.dart';
 import 'expense/expense_screen.dart';
 import 'loan/loan_screen.dart';
+import 'login_screen.dart';
 import 'notes/notes_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -16,10 +19,39 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    Provider.of<AppProvider>(context, listen: false).fetchTotals();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await Provider.of<AppProvider>(context, listen: false).fetchTotals();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: 'Logout',
+      content: 'Are you sure you want to logout?',
+    );
+
+    if (confirmed == true) {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+    }
   }
 
   @override
@@ -32,60 +64,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => provider.fetchTotals(),
+            onPressed: _fetchData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => provider.fetchTotals(),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDashboardCard(
-                'Total Expenses',
-                provider.totalExpense,
-                Icons.account_balance_wallet,
-                Colors.redAccent,
-                type: 'expense',
-              ),
-              const SizedBox(height: 16),
-              _buildDashboardCard(
-                'Total Loan',
-                provider.totalLoan,
-                Icons.account_balance,
-                Colors.green,
-                type: 'loan',
-              ),
-              const SizedBox(height: 24),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Quick Actions',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _fetchData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDashboardCard(
+                      'Total Expenses',
+                      provider.totalExpense,
+                      Icons.account_balance_wallet,
+                      Colors.redAccent,
+                      type: 'expense',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDashboardCard(
+                      'Total Loan',
+                      provider.totalLoan,
+                      Icons.account_balance,
+                      Colors.green,
+                      type: 'loan',
+                    ),
+                    const SizedBox(height: 24),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        'Quick Actions',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    _buildMenuButton('Expenses', Icons.money_off, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseListScreen()));
+                    }),
+                    _buildMenuButton('Loans', Icons.attach_money, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoanListScreen()));
+                    }),
+                    _buildMenuButton('Construction Images', Icons.image, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ImageListScreen()));
+                    }),
+                    _buildMenuButton('Notes', Icons.note, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen()));
+                    }),
+                  ],
                 ),
               ),
-              _buildMenuButton('Expenses', Icons.money_off, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseListScreen()));
-              }),
-              _buildMenuButton('Loans', Icons.attach_money, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LoanListScreen()));
-              }),
-              _buildMenuButton('Construction Images', Icons.image, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ImageListScreen()));
-              }),
-              _buildMenuButton('Notes', Icons.note, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const NotesScreen()));
-              }),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 

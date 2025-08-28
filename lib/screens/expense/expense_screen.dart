@@ -13,14 +13,27 @@ class ExpenseListScreen extends StatefulWidget {
 }
 
 class _ExpenseListScreenState extends State<ExpenseListScreen> {
+
+  bool descending = true;
+
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expenses'),
         actions: [
+          IconButton(
+            icon: Icon(
+              descending ? Icons.arrow_downward : Icons.arrow_upward,
+            ),
+            tooltip: descending ? "Sort Descending" : "Sort Ascending",
+            onPressed: () {
+              setState(() {
+                descending = !descending;
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),
@@ -35,7 +48,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         ),
       ),
       body: FutureBuilder(
-        future: provider.getExpenses(),
+        future: provider.getExpenses(sortByDate: true, descending: descending),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

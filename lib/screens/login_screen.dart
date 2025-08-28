@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     // usernameController.text = 'rubanyazh';
-    // passwordController.text = 'johan';
+     //passwordController.text = 'johan';
   }
 
   Future<void> _login() async {
@@ -102,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 32),
                         TextField(
+                          enableSuggestions: false,
                           controller: usernameController,
                           decoration: InputDecoration(
                             labelText: 'Username',

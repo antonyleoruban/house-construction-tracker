@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 
 class AppProvider extends ChangeNotifier {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -28,18 +28,54 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> updateExpense(String expenseId, Map<String, dynamic> data) async {
     await firestore.collection('expenses').doc(expenseId).update(data);
-    await fetchTotals();  // Refresh totals if required
+    await fetchTotals(); // Refresh totals if required
   }
-
 
   Future<void> addLoan(Map<String, dynamic> data) async {
     await firestore.collection('loans').add(data);
     await fetchTotals();
   }
 
-  Future<List<Map<String, dynamic>>> getExpenses() async {
+  Future<List<Map<String, dynamic>>> getExpenses1() async {
     var snapshot = await firestore.collection('expenses').get();
     return snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getExpenses({
+    bool sortByDate = false,
+    bool descending = true,
+  }) async {
+    var snapshot = await firestore.collection('expenses').get();
+
+    var expenses = snapshot.docs
+        .map((doc) => {
+              ...doc.data(),
+              'id': doc.id,
+            })
+        .toList();
+
+    if (sortByDate) {
+      expenses.sort((a, b) {
+        final dateA = a['date'];
+        final dateB = b['date'];
+
+        // If Firestore stores dates as Timestamp
+        if (dateA is Timestamp && dateB is Timestamp) {
+          return descending ? dateB.toDate().compareTo(dateA.toDate()) : dateA.toDate().compareTo(dateB.toDate());
+        }
+
+        // If stored as String (e.g. "2025-08-24")
+        if (dateA is String && dateB is String) {
+          final parsedA = DateTime.tryParse(dateA) ?? DateTime(1970);
+          final parsedB = DateTime.tryParse(dateB) ?? DateTime(1970);
+          return descending ? parsedB.compareTo(parsedA) : parsedA.compareTo(parsedB);
+        }
+
+        return 0;
+      });
+    }
+
+    return expenses;
   }
 
   Future<List<Map<String, dynamic>>> getLoans() async {
