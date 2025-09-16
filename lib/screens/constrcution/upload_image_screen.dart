@@ -62,6 +62,7 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
 
   Future<void> _uploadImage() async {
     if (_selectedImage == null || _imageNameController.text.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an image and enter a name')),
       );
@@ -85,14 +86,17 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
         'timestamp': DateTime.now(),
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Image uploaded successfully'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      if (!mounted) return;
       Navigator.pop(context); // Return to list screen
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error uploading image: ${e.toString()}'),

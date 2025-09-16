@@ -217,10 +217,12 @@ class _ImageListScreenState extends State<ImageListScreen> {
       // Delete from Firestore
       await Provider.of<AppProvider>(context, listen: false).firestore.collection('construction_images').doc(docId).delete();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Image deleted successfully')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error deleting image: ${e.toString()}')),
       );

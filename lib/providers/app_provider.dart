@@ -13,10 +13,10 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> fetchTotals() async {
     var expensesSnapshot = await firestore.collection('expenses').get();
-    totalExpense = expensesSnapshot.docs.fold(0.0, (sum, doc) => sum + (doc['totalAmount'] ?? 0));
+    totalExpense = expensesSnapshot.docs.fold(0.0, (total, doc) => total + (doc['totalAmount'] ?? 0));
 
     var loansSnapshot = await firestore.collection('loans').get();
-    totalLoan = loansSnapshot.docs.fold(0.0, (sum, doc) => sum + (doc['loanAmount'] ?? 0));
+    totalLoan = loansSnapshot.docs.fold(0.0, (total, doc) => total + (doc['loanAmount'] ?? 0));
 
     notifyListeners();
   }
