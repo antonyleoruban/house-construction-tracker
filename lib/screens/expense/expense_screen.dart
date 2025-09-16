@@ -1,8 +1,17 @@
+// Only used for web
+import 'dart:html' show AnchorElement;
+import 'dart:html' show Blob, Url;
+import 'dart:io';
+
+import 'package:excel/excel.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:new_home/providers/app_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../../providers/app_provider.dart';
 import 'add_expense_screen.dart';
 
 class ExpenseListScreen extends StatefulWidget {
@@ -13,7 +22,6 @@ class ExpenseListScreen extends StatefulWidget {
 }
 
 class _ExpenseListScreenState extends State<ExpenseListScreen> {
-
   bool descending = true;
 
   @override
@@ -37,6 +45,10 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => setState(() {}),
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () => _downloadExcel(context, provider),
           ),
         ],
       ),
@@ -65,7 +77,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                 itemCount: expenses.length,
                 itemBuilder: (context, index) {
                   var expense = expenses[index];
-                  double balanceAmount = expense['balanceAmount'];
+                  double balanceAmount = expense['balanceAmount'] ?? 0.0;
                   return Card(
                     elevation: 2, // Keep subtle elevation
                     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -301,6 +313,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
 
   // Helper function for amount rows (put this outside your ListView.builder)
   Widget _buildAmountRow(String label, dynamic amount, Color color, {bool isBalance = false}) {
+    final formattedAmount = amount != null ? amount.toStringAsFixed(2) : '0.00';
+
     return Row(
       children: [
         Text(
@@ -311,7 +325,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
           ),
         ),
         Text(
-          '₹ ${amount?.toStringAsFixed(2) ?? '0.00'}', // Format amount
+          '₹ $formattedAmount', // Format amount
           style: TextStyle(
             fontSize: 17,
             fontWeight: isBalance ? FontWeight.bold : FontWeight.w600, // Balance is bolder
@@ -345,5 +359,69 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
       // This runs when UploadImageScreen is popped
       setState(() {}); // Rebuild the widget to refresh data
     });
+  }
+
+  Future<void> _downloadExcel(BuildContext context, AppProvider provider) async {
+    final expenses = await provider.getExpenses(sortByDate: true, descending: descending);
+
+    final excel = Excel.createExcel();
+    final sheet = excel[excel.getDefaultSheet()!];
+
+    // Add headers
+    sheet.appendRow([
+      TextCellValue('Date'),
+      TextCellValue('Expense Name'),
+      TextCellValue('Total Amount'),
+    ]);
+
+    double grandTotal = 0.0;
+
+    // Add data rows
+    for (final expense in expenses) {
+      final amount = (expense['totalAmount'] ?? 0).toDouble();
+      grandTotal += amount;
+
+      sheet.appendRow([
+        TextCellValue(formatDate(expense['date'] ?? '')),
+        TextCellValue(expense['expenseName'] ?? 'Unnamed Expense'),
+        TextCellValue(amount.toStringAsFixed(2)),
+      ]);
+    }
+
+    // ✅ Add final row for total
+    sheet.appendRow([
+      TextCellValue(''),
+      TextCellValue('Total'),
+      TextCellValue(grandTotal.toStringAsFixed(2)),
+    ]);
+
+    // Encode the file
+    final bytes = excel.encode();
+    if (bytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to generate Excel file.')),
+      );
+      return;
+    }
+
+    if (kIsWeb) {
+      // ✅ Web: trigger browser download
+      final blob = Blob([bytes]);
+      final url = Url.createObjectUrlFromBlob(blob);
+
+      final anchor = AnchorElement(href: url)
+        ..setAttribute("download", "expenses.xlsx")
+        ..click();
+
+      Url.revokeObjectUrl(url);
+    } else {
+      // ✅ Mobile/Desktop: use path_provider
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/expenses.xlsx';
+      final file = File(filePath);
+
+      await file.writeAsBytes(bytes);
+      OpenFile.open(filePath);
+    }
   }
 }
