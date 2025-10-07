@@ -1,8 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart'; // Ensure this path is correct
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  final NumberFormat format = NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹ ',
+    decimalDigits: 2,
+  );
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (newText.isEmpty) {
+      return TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+    double value = double.parse(newText) / 100;
+    String formatted = format.format(value);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class AddExpenseScreen extends StatefulWidget {
   final Map<String, dynamic>? expenseToEdit;
@@ -20,6 +48,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final TextEditingController _givenAmountController = TextEditingController();
   final TextEditingController _personController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
+  String? _selectedExpenseType;
 
   // 1. Declare FocusNodes for relevant TextFormFields
   late FocusNode _remarksFocusNode;
@@ -43,10 +72,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     if (_isEditing) {
       final expense = widget.expenseToEdit!;
       _nameController.text = expense['expenseName'] ?? '';
-      _totalAmountController.text = expense['totalAmount']?.toStringAsFixed(2) ?? '';
-      _givenAmountController.text = expense['givenAmount']?.toStringAsFixed(2) ?? '';
+      _totalAmountController.text = expense['totalAmount'] != null
+          ? CurrencyInputFormatter().format.format(expense['totalAmount'])
+          : '';
+      _givenAmountController.text = expense['givenAmount'] != null
+          ? CurrencyInputFormatter().format.format(expense['givenAmount'])
+          : '';
       _personController.text = expense['personName'] ?? '';
       _remarksController.text = expense['remarks'] ?? '';
+      _selectedExpenseType = expense['expenseType'] as String? ?? 'general';
 
       if (expense['date'] != null) {
         // Ensure consistent parsing of ISO 8601 string
@@ -56,6 +90,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }
     } else {
       _selectedDate = DateTime.now();
+      _selectedExpenseType = 'general';
     }
   }
 
@@ -111,8 +146,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     FocusScope.of(context).unfocus(); // Dismisses whichever keyboard is open
 
     if (_formKey.currentState!.validate()) {
-      double total = double.tryParse(_totalAmountController.text) ?? 0.0;
-      double given = double.tryParse(_givenAmountController.text) ?? 0.0;
+      String totalAmountString = _totalAmountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      String givenAmountString = _givenAmountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+      double total = (double.tryParse(totalAmountString) ?? 0.0) / 100;
+      double given = (double.tryParse(givenAmountString) ?? 0.0) / 100;
 
       if (total <= 0) {
         _showSnackBar('Total Amount must be greater than zero.');
@@ -131,6 +169,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'givenAmount': given,
         'balanceAmount': total - given,
         'personName': _personController.text.trim(),
+        'expenseType': _selectedExpenseType,
         'remarks': _remarksController.text.trim(),
       };
 
@@ -176,6 +215,38 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Expense Type Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedExpenseType,
+                  decoration: InputDecoration(
+                    labelText: 'Expense Type',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    prefixIcon: const Icon(Icons.category_outlined),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  items: ['general', 'building']
+                      .map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type[0].toUpperCase() + type.substring(1)),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedExpenseType = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select an expense type';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+
                 // Expense Name
                 TextFormField(
                   controller: _nameController,
@@ -250,7 +321,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     filled: true,
                     fillColor: Colors.grey[50],
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(),
+                  ],
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
                       return 'Total Amount is required';
@@ -284,7 +359,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     filled: true,
                     fillColor: Colors.grey[50],
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(),
+                  ],
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
                       return 'Amount Paid is required';

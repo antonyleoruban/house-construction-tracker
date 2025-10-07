@@ -15,7 +15,9 @@ import 'package:provider/provider.dart';
 import 'add_expense_screen.dart';
 
 class ExpenseListScreen extends StatefulWidget {
-  const ExpenseListScreen({super.key});
+  final String? expenseType;
+
+  const ExpenseListScreen({super.key, this.expenseType});
 
   @override
   State<ExpenseListScreen> createState() => _ExpenseListScreenState();
@@ -24,12 +26,23 @@ class ExpenseListScreen extends StatefulWidget {
 class _ExpenseListScreenState extends State<ExpenseListScreen> {
   bool descending = true;
 
+  String formatINR(double value) {
+    final formatter = NumberFormat.currency(
+      locale: 'en_IN', // Indian locale
+      symbol: '₹',
+      decimalDigits: 2,
+    );
+    return formatter.format(value);
+  }
+
   @override
   Widget build(BuildContext context) {
     var provider = Provider.of<AppProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expenses'),
+        title: Text(widget.expenseType == null
+            ? 'Expenses'
+            : '${widget.expenseType![0].toUpperCase()}${widget.expenseType!.substring(1)} Expenses'),
         actions: [
           IconButton(
             icon: Icon(
@@ -60,7 +73,11 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         ),
       ),
       body: FutureBuilder(
-        future: provider.getExpenses(sortByDate: true, descending: descending),
+        future: provider.getExpenses(
+          sortByDate: true,
+          descending: descending,
+          expenseType: widget.expenseType,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -313,7 +330,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
 
   // Helper function for amount rows (put this outside your ListView.builder)
   Widget _buildAmountRow(String label, dynamic amount, Color color, {bool isBalance = false}) {
-    final formattedAmount = amount != null ? amount.toStringAsFixed(2) : '0.00';
+    final formattedAmount = amount != null ? formatINR(amount.toDouble()) : formatINR(0);
 
     return Row(
       children: [
@@ -325,7 +342,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
           ),
         ),
         Text(
-          '₹ $formattedAmount', // Format amount
+          formattedAmount, // Format amount
           style: TextStyle(
             fontSize: 17,
             fontWeight: isBalance ? FontWeight.bold : FontWeight.w600, // Balance is bolder

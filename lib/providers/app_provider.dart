@@ -8,18 +8,30 @@ class AppProvider extends ChangeNotifier {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  double totalExpense = 0.0;
+  double totalGeneralExpense = 0.0;
+  double totalBuildExpense = 0.0;
   double totalLoan = 0.0;
 
   Future<void> fetchTotals() async {
     var expensesSnapshot = await firestore.collection('expenses').get();
-    totalExpense = expensesSnapshot.docs.fold(0.0, (total, doc) => total + (doc['totalAmount'] ?? 0));
+    totalGeneralExpense = expensesSnapshot.docs
+        .where((doc) {
+          final data = doc.data();
+          return data['expenseType'] == 'general' || data['expenseType'] == null;
+        })
+        .fold(0.0, (total, doc) => total + (doc['totalAmount'] ?? 0));
+
+    totalBuildExpense = expensesSnapshot.docs
+        .where((doc) => doc.data()['expenseType'] == 'building')
+        .fold(0.0, (total, doc) => total + (doc['totalAmount'] ?? 0));
 
     var loansSnapshot = await firestore.collection('loans').get();
     totalLoan = loansSnapshot.docs.fold(0.0, (total, doc) => total + (doc['loanAmount'] ?? 0));
 
     notifyListeners();
   }
+
+
 
   Future<void> addExpense(Map<String, dynamic> data) async {
     await firestore.collection('expenses').add(data);
@@ -44,15 +56,26 @@ class AppProvider extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> getExpenses({
     bool sortByDate = false,
     bool descending = true,
+    String? expenseType,
   }) async {
     var snapshot = await firestore.collection('expenses').get();
 
     var expenses = snapshot.docs
         .map((doc) => {
-              ...doc.data(),
+              ...doc.data() as Map<String, dynamic>,
               'id': doc.id,
             })
         .toList();
+
+    if (expenseType != null) {
+      expenses = expenses.where((expense) {
+        if (expenseType == 'general') {
+          return expense['expenseType'] == 'general' || expense['expenseType'] == null;
+        } else {
+          return expense['expenseType'] == expenseType;
+        }
+      }).toList();
+    }
 
     if (sortByDate) {
       expenses.sort((a, b) {

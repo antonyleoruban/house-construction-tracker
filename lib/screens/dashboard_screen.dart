@@ -83,11 +83,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDashboardCard(
-                      'Total Expenses',
-                      provider.totalExpense,
+                      'Total General Expenses',
+                      provider.totalGeneralExpense,
                       Icons.account_balance_wallet,
                       Colors.redAccent,
                       type: 'expense',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDashboardCard(
+                      'Total Building Expenses',
+                      provider.totalBuildExpense,
+                      Icons.account_balance_wallet,
+                      Colors.redAccent,
+                      type: 'building_expense',
+                    ),
+
+                    const SizedBox(height: 16),
+                    _buildDashboardCard(
+                      'Total Expenses',
+                      provider.totalBuildExpense + provider.totalGeneralExpense,
+                      Icons.account_balance_wallet,
+                      Colors.redAccent,
+                      type: 'total_expense',
                     ),
                     const SizedBox(height: 16),
                     _buildDashboardCard(
@@ -134,10 +151,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: InkWell(
         onTap: () {
           if (type == 'expense') {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseListScreen()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseListScreen(expenseType: 'general')));
           } else if (type == 'loan') {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const LoanListScreen()));
-          } else {}
+          } else if (type == "building_expense"){
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseListScreen(expenseType: 'building')));
+          }else{
+
+          }
         },
         child: Container(
           padding: const EdgeInsets.all(16),
