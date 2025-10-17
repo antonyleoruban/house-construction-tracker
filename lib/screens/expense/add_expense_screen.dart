@@ -8,7 +8,7 @@ import '../../providers/app_provider.dart'; // Ensure this path is correct
 class CurrencyInputFormatter extends TextInputFormatter {
   final NumberFormat format = NumberFormat.currency(
     locale: 'en_IN',
-    symbol: '₹ ',
+    symbol: '',
     decimalDigits: 2,
   );
 
@@ -146,8 +146,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     FocusScope.of(context).unfocus(); // Dismisses whichever keyboard is open
 
     if (_formKey.currentState!.validate()) {
-      String totalAmountString = _totalAmountController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      String givenAmountString = _givenAmountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+      final totalCleaned = _totalAmountController.text.replaceAll(RegExp(r'[₹,\s]'), '');
+      String totalAmountString = totalCleaned.replaceAll(RegExp(r'[^0-9]'), '');
+
+      final giveAmountCleaned = _totalAmountController.text.replaceAll(RegExp(r'[₹,\s]'), '');
+      String givenAmountString = giveAmountCleaned.replaceAll(RegExp(r'[^0-9]'), '');
 
       double total = (double.tryParse(totalAmountString) ?? 0.0) / 100;
       double given = (double.tryParse(givenAmountString) ?? 0.0) / 100;
@@ -327,13 +331,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     CurrencyInputFormatter(),
                   ],
                   validator: (v) {
+                    print('Validating Total Amount: $v');
                     if (v == null || v.trim().isEmpty) {
                       return 'Total Amount is required';
                     }
-                    if (double.tryParse(v) == null) {
+                    final cleaned = v.replaceAll(RegExp(r'[₹,\s]'), '');
+
+                    if (double.tryParse(cleaned) == null) {
                       return 'Please enter a valid number';
                     }
-                    if (double.parse(v) <= 0) {
+                    if (double.parse(cleaned) <= 0) {
                       return 'Amount must be positive';
                     }
                     return null;
@@ -368,7 +375,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Amount Paid is required';
                     }
-                    if (double.tryParse(v) == null) {
+                    final cleaned = v.replaceAll(RegExp(r'[₹,\s]'), '');
+                    if (double.tryParse(cleaned) == null) {
                       return 'Please enter a valid number';
                     }
                     return null;
